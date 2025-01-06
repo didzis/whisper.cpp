@@ -209,6 +209,7 @@ add_library(ggml-base
             ../include/ggml-cpp.h
             ../include/ggml-opt.h
             ggml.c
+            ggml-cpu-features.cpp
             ggml-alloc.c
             ggml-backend.cpp
             ggml-opt.cpp
@@ -277,13 +278,118 @@ function(ggml_add_cpu_backend_variant tag_name)
         set(GGML_${feat} ON)
     endforeach()
 
-    ggml_add_cpu_backend_variant_impl(${tag_name})
+    ggml_add_cpu_backend_variant_impl("${tag_name}")
+
+    if (tag_name AND GGML_CPU_ALL_VARIANTS AND NOT WIN32)
+        set(prefix ${tag_name})
+        set(target ggml-cpu-${tag_name})
+        # rewrite symbols to avoid conflicts
+        foreach (symbol
+                ggml_numa_init
+                ggml_is_numa
+
+                ggml_new_i32
+                ggml_new_f32
+
+                ggml_set_i32
+                ggml_set_f32
+
+                ggml_get_i32_1d
+                ggml_set_i32_1d
+
+                ggml_get_i32_nd
+                ggml_set_i32_nd
+
+                ggml_get_f32_1d
+                ggml_set_f32_1d
+
+                ggml_get_f32_nd
+                ggml_set_f32_nd
+
+                ggml_threadpool_new
+                ggml_threadpool_free
+                ggml_threadpool_get_n_threads
+                ggml_threadpool_pause
+                ggml_threadpool_resume
+
+                ggml_graph_plan
+                ggml_graph_compute
+
+                ggml_graph_compute_with_ctx
+
+                ggml_cpu_has_sse3
+                ggml_cpu_has_ssse3
+                ggml_cpu_has_avx
+                ggml_cpu_has_avx_vnni
+                ggml_cpu_has_avx2
+                ggml_cpu_has_f16c
+                ggml_cpu_has_fma
+                ggml_cpu_has_avx512
+                ggml_cpu_has_avx512_vbmi
+                ggml_cpu_has_avx512_vnni
+                ggml_cpu_has_avx512_bf16
+                ggml_cpu_has_amx_int8
+
+                ggml_cpu_has_neon
+                ggml_cpu_has_arm_fma
+                ggml_cpu_has_fp16_va
+                ggml_cpu_has_dotprod
+                ggml_cpu_has_matmul_int8
+                ggml_cpu_has_sve
+                ggml_cpu_get_sve_cnt
+
+                ggml_cpu_has_riscv_v
+                ggml_cpu_has_vsx
+                ggml_cpu_has_wasm_simd
+                ggml_cpu_has_llamafile
+
+                ggml_get_type_traits_cpu
+
+                ggml_cpu_init
+
+                ggml_backend_cpu_init
+
+                ggml_backend_is_cpu
+                ggml_backend_cpu_set_n_threads
+                ggml_backend_cpu_set_threadpool
+                ggml_backend_cpu_set_abort_callback
+
+                ggml_backend_cpu_reg)
+            target_compile_definitions(${target} PRIVATE "${symbol}=${prefix}_${symbol}")
+        endforeach ()
+        if (NOT APPLE)
+            # dirty-hack needed for Linux only
+            foreach (symbol
+                    ggml_backend_cpu_device_context
+                    ggml_backend_buffer_type
+                    ggml_backend_feature
+                    extra_buffer_type
+                    tensor_traits
+                    tensor_traits_base)
+                target_compile_definitions(${target} PRIVATE "${symbol}=${prefix}_${symbol}")
+            endforeach ()
+        endif()
+    endif()
 endfunction()
 
 ggml_add_backend(CPU)
 
-if (GGML_CPU_ALL_VARIANTS)
-    if (NOT GGML_BACKEND_DL)
+list(LENGTH CMAKE_OSX_ARCHITECTURES OSX_ARCH_COUNT)
+if(OSX_ARCH_COUNT GREATER 1)
+    message(FATAL_ERROR "Only single architecture allowed in CMAKE_OSX_ARCHITECTURES")
+endif()
+
+if (GGML_CPU_ALL_VARIANTS AND
+    (CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64" OR CMAKE_GENERATOR_PLATFORM_LWR MATCHES "^(x86_64|i686|amd64|x64|win32)$" OR
+            (NOT CMAKE_OSX_ARCHITECTURES AND NOT CMAKE_GENERATOR_PLATFORM_LWR AND
+            CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|i686|AMD64|amd64)$")))
+    if (NOT GGML_BACKEND_DL AND NOT WIN32)
+        # CPU dispatch is only for x86_64
+        ggml_add_backend_library(ggml-cpu-dispatch)
+        target_sources(ggml-cpu-dispatch PRIVATE ggml-cpu/ggml-cpu-dispatch.cpp)
+        target_include_directories(ggml-cpu-dispatch PRIVATE . .. ../include)
+        target_compile_definitions(ggml-cpu-dispatch PRIVATE GGML_CPU_ALL_VARIANTS)
+    elseif (NOT GGML_BACKEND_DL)
         message(FATAL_ERROR "GGML_CPU_ALL_VARIANTS requires GGML_BACKEND_DL")
     endif()
     ggml_add_cpu_backend_variant(sandybridge    AVX)

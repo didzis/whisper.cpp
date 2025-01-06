@@ -343,4 +343,56 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
     if (EMSCRIPTEN)
         set_target_properties(${GGML_CPU_NAME} PROPERTIES COMPILE_FLAGS "-msimd128")
     endif()
+
+
+    # to compile and statically link together code for multiple CPU variants (x86 only) some extra steps (below) are needed to avoid symbol conflicts
+
+    if (CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64" OR CMAKE_GENERATOR_PLATFORM_LWR MATCHES "^(x86_64|i686|amd64|x64|win32)$" OR
+            (NOT CMAKE_OSX_ARCHITECTURES AND NOT CMAKE_GENERATOR_PLATFORM_LWR AND
+            CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|i686|AMD64|amd64)$"))
+
+        if (NOT WIN32 AND GGML_CPU_ALL_VARIANTS AND NOT GGML_BACKEND_DL)
+            target_compile_definitions(${GGML_CPU_NAME} PRIVATE  GGML_CPU_ALL_VARIANTS)
+            target_compile_options(${GGML_CPU_NAME} PRIVATE -fvisibility=hidden)
+        endif()
+
+        set(EXPORTED_SYMBOLS_LIST ${CMAKE_SOURCE_DIR}/ggml/src/ggml-cpu/exported_symbols_list)
+        set(COMBINED_OBJECT ${CMAKE_BINARY_DIR}/ggml/src/${GGML_CPU_NAME}-combined.o)
+
+        if(APPLE)
+
+            # replace target static library with only few selected exported symbols
+            add_custom_command(
+                TARGET ${GGML_CPU_NAME} POST_BUILD
+                COMMAND ${CMAKE_LINKER} -arch x86_64 -r -o ${COMBINED_OBJECT}
+                        -exported_symbols_list ${EXPORTED_SYMBOLS_LIST}
+                        $<TARGET_OBJECTS:${GGML_CPU_NAME}>
+                COMMAND ${CMAKE_COMMAND} -E rm -f $<TARGET_FILE:${GGML_CPU_NAME}>
+                COMMAND ${CMAKE_AR} cr $<TARGET_FILE:${GGML_CPU_NAME}> ${COMBINED_OBJECT}
+                COMMAND_EXPAND_LISTS
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/ggml/src
+                COMMENT "Localizing symbols for library: $<TARGET_FILE_BASE_NAME:${GGML_CPU_NAME}>"
+            )
+
+        elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+            set(LOCALIZED_OBJECT ${CMAKE_BINARY_DIR}/ggml/src/${GGML_CPU_NAME}-localized.o)
+
+            # replace target static library with only few selected exported symbols
+            add_custom_command(
+                TARGET ${GGML_CPU_NAME} POST_BUILD
+                COMMAND ${CMAKE_LINKER} -r -o ${COMBINED_OBJECT}
+                    --whole-archive $<TARGET_FILE:${GGML_CPU_NAME}>
+                COMMAND ${CMAKE_OBJCOPY} --wildcard --localize-hidden --keep-symbols ${EXPORTED_SYMBOLS_LIST}
+                    ${COMBINED_OBJECT} ${LOCALIZED_OBJECT}
+                COMMAND ${CMAKE_COMMAND} -E rm -f $<TARGET_FILE:${GGML_CPU_NAME}>
+                COMMAND ${CMAKE_AR} cr $<TARGET_FILE:${GGML_CPU_NAME}> ${LOCALIZED_OBJECT}
+                COMMAND_EXPAND_LISTS
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/ggml/src
+                COMMENT "Localizing symbols for library: $<TARGET_FILE_BASE_NAME:${GGML_CPU_NAME}>"
+            )
+
+        endif()
+    endif()
+
 endfunction()
