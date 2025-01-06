@@ -3,7 +3,7 @@
 #include "ggml.h"
 #include "ggml-alloc.h"
 
-#ifdef GGML_BACKEND_SHARED
+#if defined(GGML_BACKEND_SHARED) || defined(GGML_CPU_ALL_VARIANTS)
 #    if defined(_WIN32) && !defined(__MINGW32__)
 #        ifdef GGML_BACKEND_BUILD
 #            define GGML_BACKEND_API __declspec(dllexport) extern
