@@ -579,12 +579,16 @@ void ggml_select_cpu_backend() {
 
     bool sandybridge = cpu_features.AVX();
     bool haswell = cpu_features.AVX() && cpu_features.F16C() && cpu_features.AVX2() && cpu_features.FMA();
-    bool alderlake = haswell && cpu_features.AVX_VNNI();
     bool skylakex = haswell && cpu_features.AVX512F();
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
+    bool alderlake = haswell && cpu_features.AVX_VNNI();
     bool icelake = skylakex && cpu_features.AVX512_VBMI() && cpu_features.AVX512_VNNI();
     bool sapphirerapids = icelake && cpu_features.AVX512_BF16() && cpu_features.AMX_TILE() && cpu_features.AMX_INT8();
+#endif
 
-    if (sapphirerapids) {
+    if (false) {
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
+    } else if (sapphirerapids) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: sapphirerapids\n");
 
@@ -680,6 +684,7 @@ void ggml_select_cpu_backend() {
 
         _ggml_backend_cpu_reg = icelake_ggml_backend_cpu_reg;
 
+#endif
     } else if (skylakex) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: skylakex\n");
@@ -728,6 +733,7 @@ void ggml_select_cpu_backend() {
 
         _ggml_backend_cpu_reg = skylakex_ggml_backend_cpu_reg;
 
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
     } else if (alderlake) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: alderlake\n");
@@ -776,6 +782,7 @@ void ggml_select_cpu_backend() {
 
         _ggml_backend_cpu_reg = alderlake_ggml_backend_cpu_reg;
 
+#endif
     } else if (haswell) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: haswell\n");

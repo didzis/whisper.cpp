@@ -526,7 +526,7 @@ void ggml_fp32_to_bf16_row_ref(const float * x, ggml_bf16_t * y, int64_t n) {
     }
 }
 
-#if !defined(__AVX512BF16__) && defined(__x86_64__)
+#if !defined(GGML_DISABLE_AVX512BF16) && !defined(__AVX512BF16__) && defined(__x86_64__)
 __attribute__((target("avx512bf16")))
 static void ggml_fp32_to_bf16_row_avx512bf16(const float * x, ggml_bf16_t * y, int64_t n) {
     int i = 0;
@@ -544,7 +544,7 @@ static void ggml_fp32_to_bf16_row_avx512bf16(const float * x, ggml_bf16_t * y, i
 #endif
 
 void ggml_fp32_to_bf16_row(const float * x, ggml_bf16_t * y, int64_t n) {
-#if !defined(__AVX512BF16__) && defined(__x86_64__)
+#if !defined(GGML_DISABLE_AVX512BF16) && !defined(__AVX512BF16__) && defined(__x86_64__)
     if (ggml_cpu_avx512bf16_detected) {
         ggml_fp32_to_bf16_row_avx512bf16(x, y, n);
         return;
