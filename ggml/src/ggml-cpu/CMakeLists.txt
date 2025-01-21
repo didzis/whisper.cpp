@@ -559,6 +559,10 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
     endif()
 
 
+    if (GGML_USE_GETCPU_SYSCALL)
+        target_compile_definitions(${GGML_CPU_NAME} PRIVATE GGML_USE_GETCPU_SYSCALL)
+    endif()
+
     # to compile and statically link together code for multiple CPU variants (x86 only) some extra steps (below) are needed to avoid symbol conflicts
 
     if (CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64" OR CMAKE_GENERATOR_PLATFORM_LWR MATCHES "^(x86_64|i686|amd64|x64|win32)$" OR
