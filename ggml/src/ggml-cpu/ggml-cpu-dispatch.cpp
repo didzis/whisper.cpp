@@ -751,12 +751,16 @@ void ggml_select_cpu_backend() {
     bool sse42 = cpu_features.SSE42();
     bool sandybridge = sse42 && cpu_features.AVX();
     bool haswell = sse42 && cpu_features.AVX() && cpu_features.F16C() && cpu_features.AVX2() && cpu_features.BMI2() && cpu_features.FMA();
-    bool alderlake = haswell && cpu_features.AVX_VNNI();
     bool skylakex = haswell && cpu_features.AVX512F();
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
+    bool alderlake = haswell && cpu_features.AVX_VNNI();
     bool icelake = skylakex && cpu_features.AVX512_VBMI() && cpu_features.AVX512_VNNI();
     bool sapphirerapids = icelake && cpu_features.AVX512_BF16() && cpu_features.AMX_TILE() && cpu_features.AMX_INT8();
+#endif
 
-    if (sapphirerapids) {
+    if (false) {
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
+    } else if (sapphirerapids) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: sapphirerapids\n");
 
@@ -862,6 +866,7 @@ void ggml_select_cpu_backend() {
         ggml_cpu_fp32_to_bf16 = icelake_ggml_cpu_fp32_to_bf16;
         ggml_cpu_bf16_to_fp32 = icelake_ggml_cpu_bf16_to_fp32;
 
+#endif
     } else if (skylakex) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: skylakex\n");
@@ -915,6 +920,7 @@ void ggml_select_cpu_backend() {
         ggml_cpu_fp32_to_bf16 = skylakex_ggml_cpu_fp32_to_bf16;
         ggml_cpu_bf16_to_fp32 = skylakex_ggml_cpu_bf16_to_fp32;
 
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
     } else if (alderlake) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: alderlake\n");
@@ -968,6 +974,7 @@ void ggml_select_cpu_backend() {
         ggml_cpu_fp32_to_bf16 = alderlake_ggml_cpu_fp32_to_bf16;
         ggml_cpu_bf16_to_fp32 = alderlake_ggml_cpu_bf16_to_fp32;
 
+#endif
     } else if (haswell) {
 
         PRINTF("ggml_cpu_backend: selecting CPU backend: haswell\n");
