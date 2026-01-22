@@ -1,0 +1,14 @@
+*x64_*
+*sse42_*
+*sandybridge_*
+*haswell_*
+*skylakex_*
+*ivybridge_*
+*piledriver_*
+*cannonlake_*
+*cascadelake_*
+*cooperlake_*
+*zen4_*
+*icelake_*
+*alderlake_*
+*sapphirerapids_*

@@ -14,6 +14,10 @@
 #include <hbwmalloc.h>
 #endif
 
+#if defined(__x86_64__)
+#include "ggml-cpu-features.h"
+#endif
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h> // using malloc.h with MSC/MINGW
 #elif !defined(__FreeBSD__) && !defined(__NetBSD__) && !defined(__OpenBSD__)
@@ -54,7 +58,7 @@
 #define UNUSED GGML_UNUSED
 
 // Needed for ggml_fp32_to_bf16_row()
-#if defined(__AVX512BF16__)
+#if defined(__AVX512BF16__) || defined(__x86_64__)
 #if defined(_MSC_VER)
 #define m512i(p) p
 #else
@@ -476,7 +480,30 @@ void ggml_fp32_to_bf16_row_ref(const float * x, ggml_bf16_t * y, int64_t n) {
     }
 }
 
+#if !defined(__AVX512BF16__) && defined(__x86_64__)
+__attribute__((target("avx512bf16")))
+static void ggml_fp32_to_bf16_row_avx512bf16(const float * x, ggml_bf16_t * y, int64_t n) {
+    int i = 0;
+    // subnormals are flushed to zero on this platform
+    for (; i + 32 <= n; i += 32) {
+        _mm512_storeu_si512(
+            (__m512i *)(y + i),
+            m512i(_mm512_cvtne2ps_pbh(_mm512_loadu_ps(x + i + 16),
+                                _mm512_loadu_ps(x + i))));
+    }
+    for (; i < n; i++) {
+        y[i] = GGML_FP32_TO_BF16(x[i]);
+    }
+}
+#endif
+
 void ggml_fp32_to_bf16_row(const float * x, ggml_bf16_t * y, int64_t n) {
+#if !defined(__AVX512BF16__) && defined(__x86_64__)
+    if (ggml_cpu_avx512_bf16_detected) {
+        ggml_fp32_to_bf16_row_avx512bf16(x, y, n);
+        return;
+    }
+#endif
   int i = 0;
 #if defined(__AVX512BF16__)
   // subnormals are flushed to zero on this platform
