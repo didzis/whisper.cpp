@@ -468,6 +468,9 @@ if (GGML_CPU_ALL_VARIANTS AND
         target_sources(ggml-cpu-dispatch PRIVATE ggml-cpu/ggml-cpu-dispatch.cpp)
         target_include_directories(ggml-cpu-dispatch PRIVATE . .. ../include)
         target_compile_definitions(ggml-cpu-dispatch PRIVATE GGML_CPU_ALL_VARIANTS)
+        if (GGML_DISABLE_RECENT_CPU_ARCHITECTURES)
+            target_compile_definitions(ggml-cpu-dispatch PRIVATE GGML_DISABLE_RECENT_CPU_ARCHITECTURES)
+        endif()
     elseif (NOT GGML_BACKEND_DL)
         message(FATAL_ERROR "GGML_CPU_ALL_VARIANTS requires GGML_BACKEND_DL")
     elseif (GGML_CPU_ARM_ARCH)
@@ -484,20 +487,24 @@ if (GGML_CPU_ALL_VARIANTS AND
         endif()
         ggml_add_cpu_backend_variant(haswell            SSE42 AVX F16C FMA AVX2 BMI2)
         ggml_add_cpu_backend_variant(skylakex           SSE42 AVX F16C FMA AVX2 BMI2 AVX512)
-        ggml_add_cpu_backend_variant(cannonlake         SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI)
-        ggml_add_cpu_backend_variant(cascadelake        SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VNNI)
-        ggml_add_cpu_backend_variant(icelake            SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI AVX512_VNNI)
-        if (NOT MSVC)
-            # MSVC 2022 doesn't support BF16 intrinsics without `/arch:AVX10.1` ?!
-            # https://learn.microsoft.com/en-us/cpp/intrinsics/x64-amd64-intrinsics-list?view=msvc-170
-            # https://learn.microsoft.com/en-us/cpp/build/reference/arch-x64?view=msvc-170
-            ggml_add_cpu_backend_variant(cooperlake     SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VNNI AVX512_BF16)
-            ggml_add_cpu_backend_variant(zen4           SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI AVX512_VNNI AVX512_BF16)
-        endif()
-        ggml_add_cpu_backend_variant(alderlake          SSE42 AVX F16C FMA AVX2 BMI2 AVX_VNNI)
-        if (NOT MSVC)
-            # MSVC doesn't support AMX
-            ggml_add_cpu_backend_variant(sapphirerapids SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI AVX512_VNNI AVX512_BF16 AMX_TILE AMX_INT8)
+        if (NOT GGML_DISABLE_RECENT_CPU_ARCHITECTURES)
+            ggml_add_cpu_backend_variant(cannonlake         SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI)
+            ggml_add_cpu_backend_variant(cascadelake        SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VNNI)
+            ggml_add_cpu_backend_variant(icelake            SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI AVX512_VNNI)
+            if (NOT MSVC)
+                # MSVC 2022 doesn't support BF16 intrinsics without `/arch:AVX10.1` ?!
+                # https://learn.microsoft.com/en-us/cpp/intrinsics/x64-amd64-intrinsics-list?view=msvc-170
+                # https://learn.microsoft.com/en-us/cpp/build/reference/arch-x64?view=msvc-170
+                ggml_add_cpu_backend_variant(cooperlake     SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VNNI AVX512_BF16)
+                ggml_add_cpu_backend_variant(zen4           SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI AVX512_VNNI AVX512_BF16)
+            endif()
+            ggml_add_cpu_backend_variant(alderlake          SSE42 AVX F16C FMA AVX2 BMI2 AVX_VNNI)
+            if (NOT MSVC)
+                # MSVC doesn't support AMX
+                ggml_add_cpu_backend_variant(sapphirerapids SSE42 AVX F16C FMA AVX2 BMI2 AVX512 AVX512_VBMI AVX512_VNNI AVX512_BF16 AMX_TILE AMX_INT8)
+            endif()
+        else()
+            target_compile_definitions(ggml-base PRIVATE GGML_DISABLE_AVX512BF16)
         endif()
     elseif(GGML_SYSTEM_ARCH STREQUAL "ARM")
         if (CMAKE_SYSTEM_NAME MATCHES "Linux")

@@ -352,29 +352,35 @@ void ggml_select_cpu_backend() {
     bool fma = cpu_features.FMA();
     bool avx2 = cpu_features.AVX2();
     bool bmi2 = cpu_features.BMI2();
-    bool avx_vnni = cpu_features.AVX_VNNI();
     bool avx512 = cpu_features.AVX512F() && cpu_features.AVX512CD() && cpu_features.AVX512VL() \
                                          && cpu_features.AVX512DQ() && cpu_features.AVX512BW();
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
+    bool avx_vnni = cpu_features.AVX_VNNI();
     bool avx512_vnni = cpu_features.AVX512_VNNI();
     bool avx512_vbmi = cpu_features.AVX512_VBMI();
     bool avx512_bf16 = cpu_features.AVX512_BF16();
     bool amx_tile = cpu_features.AMX_TILE();
     bool amx_int8 = cpu_features.AMX_INT8();
+#endif
 
     bool sandybridge    = sse42 && avx;
     bool ivybridge      = sse42 && avx && f16c;
     bool piledriver     = sse42 && avx && f16c && fma;
     bool haswell        = sse42 && avx && f16c && fma && avx2 && bmi2;
-    bool alderlake      = sse42 && avx && f16c && fma && avx2 && bmi2 && avx_vnni;
     bool skylakex       = sse42 && avx && f16c && fma && avx2 && bmi2 && avx512;
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
+    bool alderlake      = sse42 && avx && f16c && fma && avx2 && bmi2 && avx_vnni;
     bool cascadelake    = sse42 && avx && f16c && fma && avx2 && bmi2 && avx512 && avx512_vnni;
     bool cooperlake     = sse42 && avx && f16c && fma && avx2 && bmi2 && avx512 && avx512_vnni && avx512_bf16;
     bool cannonlake     = sse42 && avx && f16c && fma && avx2 && bmi2 && avx512 && avx512_vbmi;
     bool icelake        = sse42 && avx && f16c && fma && avx2 && bmi2 && avx512 && avx512_vbmi && avx512_vnni;
     bool zen4           = sse42 && avx && f16c && fma && avx2 && bmi2 && avx512 && avx512_vbmi && avx512_vnni && avx512_bf16;
     bool sapphirerapids = sse42 && avx && f16c && fma && avx2 && bmi2 && avx512 && avx512_vbmi && avx512_vnni && avx512_bf16 && amx_tile && amx_int8;
+#endif
 
-    if (sapphirerapids) {
+    if (false) {
+#ifndef GGML_DISABLE_RECENT_CPU_ARCHITECTURES
+    } else if (sapphirerapids) {
 
 #define CPU_NAME sapphirerapids
 #include "ggml-cpu-select-api-funcs.h"
@@ -404,14 +410,15 @@ void ggml_select_cpu_backend() {
 #define CPU_NAME cascadelake
 #include "ggml-cpu-select-api-funcs.h"
 
-    } else if (skylakex) {
-
-#define CPU_NAME skylakex
-#include "ggml-cpu-select-api-funcs.h"
-
     } else if (alderlake) {
 
 #define CPU_NAME alderlake
+#include "ggml-cpu-select-api-funcs.h"
+
+#endif
+    } else if (skylakex) {
+
+#define CPU_NAME skylakex
 #include "ggml-cpu-select-api-funcs.h"
 
     } else if (haswell) {

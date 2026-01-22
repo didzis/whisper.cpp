@@ -179,6 +179,7 @@ option(GGML_VXE              "ggml: enable vxe"              ${GGML_NATIVE})
 option(GGML_CPU_ALL_VARIANTS "ggml: build all variants of the CPU backend (requires GGML_BACKEND_DL)" OFF)
 set(GGML_CPU_ARM_ARCH        "" CACHE STRING "ggml: CPU architecture for ARM")
 set(GGML_CPU_POWERPC_CPUTYPE "" CACHE STRING "ggml: CPU type for PowerPC")
+option(GGML_DISABLE_RECENT_CPU_ARCHITECTURES "ggml: disable recent CPU architectures (since 2019)" OFF)
 
 # ggml core
 set(GGML_SCHED_MAX_COPIES  "4" CACHE STRING "ggml: max input copies for pipeline parallelism")

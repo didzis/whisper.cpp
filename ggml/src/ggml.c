@@ -480,7 +480,7 @@ void ggml_fp32_to_bf16_row_ref(const float * x, ggml_bf16_t * y, int64_t n) {
     }
 }
 
-#if !defined(__AVX512BF16__) && defined(__x86_64__)
+#if !defined(__AVX512BF16__) && defined(__x86_64__) && !defined(GGML_DISABLE_AVX512BF16)
 __attribute__((target("avx512bf16")))
 static void ggml_fp32_to_bf16_row_avx512bf16(const float * x, ggml_bf16_t * y, int64_t n) {
     int i = 0;
@@ -498,14 +498,14 @@ static void ggml_fp32_to_bf16_row_avx512bf16(const float * x, ggml_bf16_t * y, i
 #endif
 
 void ggml_fp32_to_bf16_row(const float * x, ggml_bf16_t * y, int64_t n) {
-#if !defined(__AVX512BF16__) && defined(__x86_64__)
+#if !defined(__AVX512BF16__) && defined(__x86_64__) && !defined(GGML_DISABLE_AVX512BF16)
     if (ggml_cpu_avx512_bf16_detected) {
         ggml_fp32_to_bf16_row_avx512bf16(x, y, n);
         return;
     }
 #endif
   int i = 0;
-#if defined(__AVX512BF16__)
+#if defined(__AVX512BF16__) && !defined(GGML_DISABLE_AVX512BF16)
   // subnormals are flushed to zero on this platform
   for (; i + 32 <= n; i += 32) {
         _mm512_storeu_si512(
